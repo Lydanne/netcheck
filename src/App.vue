@@ -32,6 +32,7 @@ const checkDomain = async () => {
     };
   } catch (error) {
     console.error(error);
+    alert(`错误: ${error}`);
   } finally {
     loading.value = false;
   }

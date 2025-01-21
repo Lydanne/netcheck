@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -11,4 +11,10 @@
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
+  <script src="https://unpkg.com/vconsole@latest/dist/vconsole.min.js"></script>
+  <script>
+    // VConsole will be exported to `window.VConsole` by default.
+    var vConsole = new window.VConsole();
+    window.invoke = window.__TAURI__.core.invoke;
+  </script>
 </html>

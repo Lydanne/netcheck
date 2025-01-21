@@ -151,16 +151,23 @@ pub async fn check_dns(domain: String) -> Result<DnsResult, String> {
 /// 检查域名证书信息
 #[tauri::command]
 pub async fn get_certificate_info(domain: String) -> Result<CertificateInfo, String> {
+    log::info!("xxxx-0");
     let root_store = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+    log::info!("xxxx-1");
 
     let config = ClientConfig::builder()
         .with_root_certificates(root_store)
         .with_no_client_auth();
 
+    log::info!("xxxx-2");
+
     let connector = TlsConnector::from(Arc::new(config));
     let stream = tokio::net::TcpStream::connect(format!("{}:443", domain))
         .await
         .map_err(|e| format!("连接失败: {}", e))?;
+
+    log::info!("xxxx-3");
 
     let server_name = rustls::pki_types::ServerName::try_from(domain)
         .map_err(|e| format!("无效的服务器名称: {}", e))?;
@@ -170,8 +177,12 @@ pub async fn get_certificate_info(domain: String) -> Result<CertificateInfo, Str
         .await
         .map_err(|e| e.to_string())?;
 
+    log::info!("xxxx-4");
+
     let (_, server_conn) = tls_stream.get_ref();
     let certs = server_conn.peer_certificates();
+
+    log::info!("xxxx-5");
 
     let cert = match certs.and_then(|c| c.first()) {
         Some(cert) => cert,
@@ -180,6 +191,8 @@ pub async fn get_certificate_info(domain: String) -> Result<CertificateInfo, Str
 
     let (_, cert) = X509Certificate::from_der(cert.as_ref()).map_err(|e| e.to_string())?;
     let tbs = cert.tbs_certificate;
+
+    log::info!("xxxx-6");
 
     Ok(CertificateInfo {
         subject: tbs.subject.to_string(),
