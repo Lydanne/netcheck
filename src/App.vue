@@ -32,9 +32,11 @@ const checkDomain = async () => {
     );
 
     result.value = {
-      connectivity: connectivity ?? { error: "connectivity error" },
-      dns: dns ?? { error: "dns error" },
-      cert: cert ?? { error: "cert error" },
+      connectivity: connectivity ?? {
+        error: `connectivity error(${connectivityError})`,
+      },
+      dns: dns ?? { error: `dns error(${dnsError})` },
+      cert: cert ?? { error: `cert error(${certError})` },
     };
   } catch (error) {
     console.error(error);
