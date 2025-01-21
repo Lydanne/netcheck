@@ -25,9 +25,9 @@ serde_json = "1"
 tokio = { version = "1.36", features = ["full"] }
 trust-dns-resolver = { version = "0.23.2", features = ["tokio-runtime"] }
 reqwest = { version = "0.12.12", features = ["native-tls", "native-tls-vendored"] }
-native-tls = "0.2"
-tokio-native-tls = "0.3"
 x509-parser = "0.16.0"
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0.11"
 webpki-roots = "0.26"
+rustls = "0.23"
+tokio-rustls = "0.26"

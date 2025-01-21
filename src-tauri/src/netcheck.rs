@@ -1,9 +1,11 @@
 use chrono::{DateTime, Utc};
-use native_tls::TlsConnector;
 use reqwest::Client;
+use rustls::{ClientConfig, RootCertStore};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
+use tokio_rustls::TlsConnector;
 use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 use x509_parser::prelude::*;
@@ -149,29 +151,34 @@ pub async fn check_dns(domain: String) -> Result<DnsResult, String> {
 /// 检查域名证书信息
 #[tauri::command]
 pub async fn get_certificate_info(domain: String) -> Result<CertificateInfo, String> {
-    let connector = TlsConnector::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .map_err(|e| e.to_string())?;
+    let root_store = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
+    let config = ClientConfig::builder()
+        .with_root_certificates(root_store)
+        .with_no_client_auth();
+
+    let connector = TlsConnector::from(Arc::new(config));
     let stream = tokio::net::TcpStream::connect(format!("{}:443", domain))
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("连接失败: {}", e))?;
 
-    let connector = tokio_native_tls::TlsConnector::from(connector);
+    let server_name = rustls::pki_types::ServerName::try_from(domain)
+        .map_err(|e| format!("无效的服务器名称: {}", e))?;
+
     let tls_stream = connector
-        .connect(&domain, stream)
+        .connect(server_name, stream)
         .await
         .map_err(|e| e.to_string())?;
 
-    let cert = match tls_stream.get_ref().peer_certificate() {
-        Ok(Some(cert)) => cert,
-        Ok(None) => return Err("无法获取证书".to_string()),
-        Err(e) => return Err(e.to_string()),
+    let (_, server_conn) = tls_stream.get_ref();
+    let certs = server_conn.peer_certificates();
+
+    let cert = match certs.and_then(|c| c.first()) {
+        Some(cert) => cert,
+        None => return Err("无法获取证书".to_string()),
     };
 
-    let cert_der = cert.to_der().map_err(|e| e.to_string())?;
-    let (_, cert) = X509Certificate::from_der(&cert_der).map_err(|e| e.to_string())?;
+    let (_, cert) = X509Certificate::from_der(cert.as_ref()).map_err(|e| e.to_string())?;
     let tbs = cert.tbs_certificate;
 
     Ok(CertificateInfo {
