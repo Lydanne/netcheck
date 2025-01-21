@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use rustls::{ClientConfig, RootCertStore};
 use serde::{Deserialize, Serialize};
+use std::panic;
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::time::Duration;
 use tauri_plugin_http::reqwest;
@@ -155,10 +157,26 @@ pub async fn get_certificate_info(domain: String) -> Result<CertificateInfo, Str
     let root_store = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
     log::info!("xxxx-1");
+    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+        let config = ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_no_client_auth();
+        config
+    }));
 
-    let config = ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth();
+    if let Err(e) = result {
+        log::error!("获取证书信息失败: {:?}", e);
+        if let Some(msg) = e.downcast_ref::<&str>() {
+            log::error!("捕获到错误: {}", msg);
+        } else if let Some(msg) = e.downcast_ref::<String>() {
+            log::error!("捕获到错误: {}", msg);
+        } else {
+            log::error!("捕获到未知类型的错误");
+        }
+        return Err(format!("获取证书信息失败: {:?}", e));
+    }
+
+    let config = result.unwrap();
 
     log::info!("xxxx-2");
 

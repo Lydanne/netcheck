@@ -11,6 +11,7 @@ export interface DnsResult {
   ns_records: string[];
   mx_records: string[];
   txt_records: string[];
+  error?: string;
 }
 
 export interface CertificateInfo {
@@ -20,4 +21,5 @@ export interface CertificateInfo {
   valid_until: number;
   serial_number: string;
   version: number;
+  error?: string;
 }

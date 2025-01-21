@@ -17,18 +17,24 @@ const checkDomain = async () => {
   result.value = null;
 
   try {
-    const [connectivity, dns, cert] = await Promise.all([
+    const [connectivityError, connectivity] = await wrap(
       invoke<ConnectivityResult>("check_connectivity", {
         domain: domain.value,
-      }),
-      invoke<DnsResult>("check_dns", { domain: domain.value }),
-      invoke<CertificateInfo>("get_certificate_info", { domain: domain.value }),
-    ]);
+      })
+    );
+    const [dnsError, dns] = await wrap(
+      invoke<DnsResult>("check_dns", { domain: domain.value })
+    );
+    const [certError, cert] = await wrap(
+      invoke<CertificateInfo>("get_certificate_info", {
+        domain: domain.value,
+      })
+    );
 
     result.value = {
-      connectivity,
-      dns,
-      cert,
+      connectivity: connectivity ?? { error: "connectivity error" },
+      dns: dns ?? { error: "dns error" },
+      cert: cert ?? { error: "cert error" },
     };
   } catch (error) {
     console.error(error);
@@ -37,6 +43,16 @@ const checkDomain = async () => {
     loading.value = false;
   }
 };
+
+function wrap(p: Promise<any>) {
+  return p
+    .then((res) => {
+      return [null, res];
+    })
+    .catch((error) => {
+      return [error, null];
+    });
+}
 </script>
 
 <template>
