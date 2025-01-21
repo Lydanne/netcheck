@@ -4,8 +4,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use thiserror::Error;
-use trust_dns_resolver::config::{ResolverConfig, ResolverOpts};
-use trust_dns_resolver::Resolver;
+use trust_dns_resolver::config::*;
+use trust_dns_resolver::TokioAsyncResolver;
 use x509_parser::prelude::*;
 
 #[derive(Debug, Error)]
@@ -47,6 +47,7 @@ pub struct CertificateInfo {
     pub version: u32,
 }
 
+/// 检查域名是否可达
 #[tauri::command]
 pub async fn check_connectivity(domain: String) -> Result<ConnectivityResult, String> {
     let client = Client::new();
@@ -77,43 +78,63 @@ pub async fn check_connectivity(domain: String) -> Result<ConnectivityResult, St
     }
 }
 
+/// 检查域名DNS解析结果
 #[tauri::command]
 pub async fn check_dns(domain: String) -> Result<DnsResult, String> {
-    let resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default())
-        .map_err(|e| e.to_string())?;
+    // 创建解析器配置
+    let mut opts = ResolverOpts::default();
+    opts.timeout = Duration::from_secs(5);
+    opts.attempts = 2;
 
-    let a_lookup = resolver.lookup_ip(&domain).map_err(|e| e.to_string())?;
-    let a_records: Vec<String> = a_lookup.iter().map(|ip| ip.to_string()).collect();
+    // 使用系统配置创建解析器
+    let resolver = TokioAsyncResolver::tokio(ResolverConfig::default(), opts);
 
     let mut dns_result = DnsResult {
-        a_records,
+        a_records: Vec::new(),
         aaaa_records: Vec::new(),
         ns_records: Vec::new(),
         mx_records: Vec::new(),
         txt_records: Vec::new(),
     };
 
-    // AAAA records
-    if let Ok(aaaa_lookup) = resolver.ipv6_lookup(&domain) {
-        dns_result.aaaa_records = aaaa_lookup.iter().map(|ip| ip.to_string()).collect();
+    // 并行查询所有记录类型
+    let (ip_result, ns_result, mx_result, txt_result) = tokio::join!(
+        resolver.lookup_ip(&domain),
+        resolver.ns_lookup(&domain),
+        resolver.mx_lookup(&domain),
+        resolver.txt_lookup(&domain)
+    );
+
+    // 处理 A 和 AAAA 记录
+    if let Ok(lookup) = ip_result {
+        dns_result.a_records = lookup
+            .iter()
+            .filter(|ip| ip.is_ipv4())
+            .map(|ip| ip.to_string())
+            .collect();
+        dns_result.aaaa_records = lookup
+            .iter()
+            .filter(|ip| ip.is_ipv6())
+            .map(|ip| ip.to_string())
+            .collect();
     }
 
-    // NS records
-    if let Ok(ns_lookup) = resolver.ns_lookup(&domain) {
-        dns_result.ns_records = ns_lookup.iter().map(|ns| ns.to_string()).collect();
+    // 处理 NS 记录
+    if let Ok(lookup) = ns_result {
+        dns_result.ns_records = lookup.iter().map(|ns| ns.to_string()).collect();
     }
 
-    // MX records
-    if let Ok(mx_lookup) = resolver.mx_lookup(&domain) {
-        dns_result.mx_records = mx_lookup
+    // 处理 MX 记录
+    if let Ok(lookup) = mx_result {
+        dns_result.mx_records = lookup
             .iter()
             .map(|mx| format!("{} {}", mx.preference(), mx.exchange()))
             .collect();
     }
 
-    // TXT records
-    if let Ok(txt_lookup) = resolver.txt_lookup(&domain) {
-        dns_result.txt_records = txt_lookup
+    // 处理 TXT 记录
+    if let Ok(lookup) = txt_result {
+        dns_result.txt_records = lookup
             .iter()
             .filter_map(|txt| {
                 let data = txt.txt_data().first()?;
@@ -125,6 +146,7 @@ pub async fn check_dns(domain: String) -> Result<DnsResult, String> {
     Ok(dns_result)
 }
 
+/// 检查域名证书信息
 #[tauri::command]
 pub async fn get_certificate_info(domain: String) -> Result<CertificateInfo, String> {
     let connector = TlsConnector::builder()
