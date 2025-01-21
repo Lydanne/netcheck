@@ -26,9 +26,9 @@ tokio = { version = "1.36", features = ["full"] }
 x509-parser = "0.16.0"
 chrono = { version = "0.4", features = ["serde"] }
 thiserror = "2.0.11"
-webpki-roots = "0.26"
-rustls = "0.23"
-tokio-rustls = "0.26"
+# webpki-roots = "0.26"
+# rustls = "0.23"
+# tokio-rustls = "0.26"
 trust-dns-resolver = { version = "0.23.2", features = ["tokio-runtime"] }
 tauri-plugin-http = "2"
 tauri-plugin-log = "2"

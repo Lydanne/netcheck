@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
-use rustls::{ClientConfig, RootCertStore};
+// use rustls::{ClientConfig, RootCertStore};
+// use tokio_rustls::TlsConnector;
 use serde::{Deserialize, Serialize};
 use std::panic;
 use std::panic::AssertUnwindSafe;
@@ -7,7 +8,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use tauri_plugin_http::reqwest;
 use thiserror::Error;
-use tokio_rustls::TlsConnector;
 use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 use x509_parser::prelude::*;
@@ -153,73 +153,74 @@ pub async fn check_dns(domain: String) -> Result<DnsResult, String> {
 /// 检查域名证书信息
 #[tauri::command]
 pub async fn get_certificate_info(domain: String) -> Result<CertificateInfo, String> {
-    log::info!("xxxx-0");
-    let root_store = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+    return Err("test".to_string());
+    // log::info!("xxxx-0");
+    // let root_store = RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
-    log::info!("xxxx-1");
-    let result = panic::catch_unwind(AssertUnwindSafe(|| {
-        let config = ClientConfig::builder()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
-        config
-    }));
+    // log::info!("xxxx-1");
+    // let result = panic::catch_unwind(AssertUnwindSafe(|| {
+    //     let config = ClientConfig::builder()
+    //         .with_root_certificates(root_store)
+    //         .with_no_client_auth();
+    //     config
+    // }));
 
-    if let Err(e) = result {
-        log::error!("获取证书信息失败: {:?}", e);
-        if let Some(msg) = e.downcast_ref::<&str>() {
-            log::error!("捕获到错误: {}", msg);
-        } else if let Some(msg) = e.downcast_ref::<String>() {
-            log::error!("捕获到错误: {}", msg);
-        } else {
-            log::error!("捕获到未知类型的错误");
-        }
-        return Err(format!("获取证书信息失败: {:?}", e));
-    }
+    // if let Err(e) = result {
+    //     log::error!("获取证书信息失败: {:?}", e);
+    //     if let Some(msg) = e.downcast_ref::<&str>() {
+    //         log::error!("捕获到错误: {}", msg);
+    //     } else if let Some(msg) = e.downcast_ref::<String>() {
+    //         log::error!("捕获到错误: {}", msg);
+    //     } else {
+    //         log::error!("捕获到未知类型的错误");
+    //     }
+    //     return Err(format!("获取证书信息失败: {:?}", e));
+    // }
 
-    let config = result.unwrap();
+    // let config = result.unwrap();
 
-    log::info!("xxxx-2");
+    // log::info!("xxxx-2");
 
-    let connector = TlsConnector::from(Arc::new(config));
-    let stream = tokio::net::TcpStream::connect(format!("{}:443", domain))
-        .await
-        .map_err(|e| format!("连接失败: {}", e))?;
+    // let connector = TlsConnector::from(Arc::new(config));
+    // let stream = tokio::net::TcpStream::connect(format!("{}:443", domain))
+    //     .await
+    //     .map_err(|e| format!("连接失败: {}", e))?;
 
-    log::info!("xxxx-3");
+    // log::info!("xxxx-3");
 
-    let server_name = rustls::pki_types::ServerName::try_from(domain)
-        .map_err(|e| format!("无效的服务器名称: {}", e))?;
+    // let server_name = rustls::pki_types::ServerName::try_from(domain)
+    //     .map_err(|e| format!("无效的服务器名称: {}", e))?;
 
-    let tls_stream = connector
-        .connect(server_name, stream)
-        .await
-        .map_err(|e| e.to_string())?;
+    // let tls_stream = connector
+    //     .connect(server_name, stream)
+    //     .await
+    //     .map_err(|e| e.to_string())?;
 
-    log::info!("xxxx-4");
+    // log::info!("xxxx-4");
 
-    let (_, server_conn) = tls_stream.get_ref();
-    let certs = server_conn.peer_certificates();
+    // let (_, server_conn) = tls_stream.get_ref();
+    // let certs = server_conn.peer_certificates();
 
-    log::info!("xxxx-5");
+    // log::info!("xxxx-5");
 
-    let cert = match certs.and_then(|c| c.first()) {
-        Some(cert) => cert,
-        None => return Err("无法获取证书".to_string()),
-    };
+    // let cert = match certs.and_then(|c| c.first()) {
+    //     Some(cert) => cert,
+    //     None => return Err("无法获取证书".to_string()),
+    // };
 
-    let (_, cert) = X509Certificate::from_der(cert.as_ref()).map_err(|e| e.to_string())?;
-    let tbs = cert.tbs_certificate;
+    // let (_, cert) = X509Certificate::from_der(cert.as_ref()).map_err(|e| e.to_string())?;
+    // let tbs = cert.tbs_certificate;
 
-    log::info!("xxxx-6");
+    // log::info!("xxxx-6");
 
-    Ok(CertificateInfo {
-        subject: tbs.subject.to_string(),
-        issuer: tbs.issuer.to_string(),
-        valid_from: DateTime::from_timestamp(tbs.validity.not_before.timestamp(), 0)
-            .ok_or_else(|| "无效的开始时间".to_string())?,
-        valid_until: DateTime::from_timestamp(tbs.validity.not_after.timestamp(), 0)
-            .ok_or_else(|| "无效的结束时间".to_string())?,
-        serial_number: format!("{:X}", tbs.serial),
-        version: tbs.version.0 as u32 + 1,
-    })
+    // Ok(CertificateInfo {
+    //     subject: tbs.subject.to_string(),
+    //     issuer: tbs.issuer.to_string(),
+    //     valid_from: DateTime::from_timestamp(tbs.validity.not_before.timestamp(), 0)
+    //         .ok_or_else(|| "无效的开始时间".to_string())?,
+    //     valid_until: DateTime::from_timestamp(tbs.validity.not_after.timestamp(), 0)
+    //         .ok_or_else(|| "无效的结束时间".to_string())?,
+    //     serial_number: format!("{:X}", tbs.serial),
+    //     version: tbs.version.0 as u32 + 1,
+    // })
 }
