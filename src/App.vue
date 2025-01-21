@@ -22,6 +22,14 @@ const checkDomain = async () => {
         domain: domain.value,
       }),
       invoke<DnsResult>("check_dns", { domain: domain.value }),
+      {
+        subject: "",
+        issuer: "",
+        valid_from: 0,
+        valid_until: 0,
+        serial_number: "",
+        version: 0,
+      },
       invoke<CertificateInfo>("get_certificate_info", { domain: domain.value }),
     ]);
 

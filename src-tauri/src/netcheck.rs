@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
-use reqwest::Client;
 use rustls::{ClientConfig, RootCertStore};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
+use tauri_plugin_http::reqwest;
 use thiserror::Error;
 use tokio_rustls::TlsConnector;
 use trust_dns_resolver::config::*;
@@ -52,7 +52,7 @@ pub struct CertificateInfo {
 /// 检查域名是否可达
 #[tauri::command]
 pub async fn check_connectivity(domain: String) -> Result<ConnectivityResult, String> {
-    let client = Client::new();
+    let client = reqwest::Client::new();
     let url = format!("https://{}", domain);
     let start = std::time::Instant::now();
 
