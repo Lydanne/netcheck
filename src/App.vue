@@ -175,7 +175,7 @@ function wrap(p: Promise<any>) {
               <div
                 v-for="record in result.dns.txt_records"
                 :key="record"
-                class="text-gray-600"
+                class="text-gray-600 break-words"
               >
                 {{ record }}
               </div>
