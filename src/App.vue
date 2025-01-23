@@ -30,12 +30,22 @@ const checkDomain = async () => {
         domain: domain.value,
       })
     );
-
+    if (dnsError) {
+      console.error("dns error", dnsError);
+    }
+    if (certError) {
+      console.error("cert error", certError);
+    }
+    if (connectivityError) {
+      console.error("connectivity error", connectivityError);
+    }
     result.value = {
       connectivity: connectivity ?? {
         error: `connectivity error(${connectivityError})`,
       },
-      dns: dns ?? { error: `dns error(${dnsError})` },
+      dns: dns ?? {
+        error: `dns error(${dnsError})`,
+      },
       cert: cert ?? { error: `cert error(${certError})` },
     };
   } catch (error) {
@@ -113,7 +123,10 @@ function wrap(p: Promise<any>) {
       <!-- DNS 记录 -->
       <div class="bg-white p-4 rounded shadow">
         <h2 class="text-xl font-semibold mb-4">DNS 记录</h2>
-        <div class="space-y-4">
+        <div v-if="result.dns.error" class="text-red-600">
+          {{ result.dns.error }}
+        </div>
+        <div v-else class="space-y-4">
           <!-- A 记录 -->
           <div v-if="result.dns.a_records.length">
             <h3 class="font-medium text-gray-700 mb-2">A 记录</h3>
